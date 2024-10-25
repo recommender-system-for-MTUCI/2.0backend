@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/recommender-system-for-MTUCI/2.0backend/internal/app"
 
 func main() {
-	fmt.Println("hi")
+	app.ReccommendSystem()
 }
