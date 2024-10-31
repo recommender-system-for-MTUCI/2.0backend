@@ -2,14 +2,15 @@ package controller
 
 import (
 	"errors"
-	"github.com/google/uuid"
-	"github.com/recommender-system-for-MTUCI/2.0backend/internal/models"
-	"golang.org/x/crypto/bcrypt"
 	"math/rand"
 	"net/smtp"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/recommender-system-for-MTUCI/2.0backend/internal/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func validateLogin(req *models.RequestLogin) error {
@@ -32,7 +33,7 @@ func validateRegistration(req models.RequestRegister) error {
 }
 
 func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 20)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
 		return "", err
 	}
@@ -50,23 +51,41 @@ func (ctrl *Controller) generateAccessAndRefreshToken(userID uuid.UUID) (accessT
 	}
 	return accessToken, refreshToken, nil
 }
-
 func (ctrl *Controller) sendMessages(login string) error {
-	password, err := os.ReadFile(ctrl.cfg.SMTP.PasswordPath)
-	if err != nil {
-		return err
-	}
-	from := ctrl.cfg.SMTP.From
-	server := ctrl.cfg.SMTP.SmtpServer
-	auth := authorization(from, string(password), server)
-	smtpAddress := ctrl.cfg.SMTP.GetSmtpAddress()
-	number := strconv.Itoa(generationRandomCode())
-	code := []byte(number)
-	err = smtp.SendMail(smtpAddress, auth, from, []string{login}, code)
-	if err != nil {
-		ctrl.logger.Info("Failed to send message")
-	}
-	return err
+	errChan := make(chan error, 1)
+
+	go func() {
+		password, err := os.ReadFile(ctrl.cfg.SMTP.PasswordPath)
+		if err != nil {
+			ctrl.logger.Error("Failed to read SMTP password")
+			errChan <- err
+			return
+		}
+
+		from := ctrl.cfg.SMTP.From
+		server := ctrl.cfg.SMTP.SmtpServer
+		auth := authorization(from, string(password), server)
+		smtpAddress := ctrl.cfg.SMTP.GetSmtpAddress()
+		number := strconv.Itoa(generationRandomCode())
+		code := []byte(number)
+
+		maxRetries := 2
+		for i := 0; i < maxRetries; i++ {
+			err = smtp.SendMail(smtpAddress, auth, from, []string{login}, code)
+			if err == nil {
+				errChan <- nil
+				return
+			}
+
+			ctrl.logger.Info("Failed to send message, retrying...")
+			time.Sleep(2 * time.Second)
+		}
+
+		ctrl.logger.Error("Failed to send message after retries")
+		errChan <- err
+	}()
+
+	return <-errChan
 }
 
 func authorization(from string, password string, server string) smtp.Auth {

@@ -1,9 +1,10 @@
 package config
 
 type Config struct {
-	Server *Server
-	JWT    *JWT
-	SMTP   *SMTP
+	Server   *Server
+	JWT      *JWT
+	SMTP     *SMTP
+	Postgres *Postgres
 }
 
 func New() (*Config, error) {
@@ -23,6 +24,13 @@ func New() (*Config, error) {
 			SmtpPort:     "587",
 			From:         "reccomendsystem@mail.ru",
 			PasswordPath: "/home/relationskatie/backendForReccomenSystem/key/password.txt",
+		},
+		Postgres: &Postgres{
+			Host:         "localhost",
+			Port:         "5432",
+			User:         "relationskatie",
+			PasswordPath: "/home/relationskatie/backendForReccomenSystem/key/passwordPostgres.txt",
+			Database:     "recommend_system",
 		},
 	}
 	return cfg, nil
