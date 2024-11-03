@@ -51,7 +51,8 @@ func (ctrl *Controller) generateAccessAndRefreshToken(userID uuid.UUID) (accessT
 	}
 	return accessToken, refreshToken, nil
 }
-func (ctrl *Controller) sendMessages(login string) error {
+
+/*func (ctrl *Controller) sendMessages(login string) error {
 	errChan := make(chan error, 1)
 
 	go func() {
@@ -78,7 +79,7 @@ func (ctrl *Controller) sendMessages(login string) error {
 			}
 
 			ctrl.logger.Info("Failed to send message, retrying...")
-			time.Sleep(2 * time.Second)
+			time.Sleep(time.Second)
 		}
 
 		ctrl.logger.Error("Failed to send message after retries")
@@ -86,6 +87,35 @@ func (ctrl *Controller) sendMessages(login string) error {
 	}()
 
 	return <-errChan
+}*/
+
+func (ctrl *Controller) sendMessages(login string) error {
+
+	password, err := os.ReadFile(ctrl.cfg.SMTP.PasswordPath)
+	if err != nil {
+		ctrl.logger.Error("Failed to read SMTP password")
+		return err
+	}
+	from := ctrl.cfg.SMTP.From
+	server := ctrl.cfg.SMTP.SmtpServer
+	auth := authorization(from, string(password), server)
+	smtpAddress := ctrl.cfg.SMTP.GetSmtpAddress()
+	number := strconv.Itoa(generationRandomCode())
+	code := []byte(number)
+
+	maxRetries := 2
+	for i := 0; i < maxRetries; i++ {
+		err = smtp.SendMail(smtpAddress, auth, from, []string{login}, code)
+		if err == nil {
+			return nil
+		}
+
+		ctrl.logger.Info("Failed to send message, retrying...")
+		time.Sleep(time.Second)
+	}
+
+	ctrl.logger.Error("Failed to send message after retries")
+	return err
 }
 
 func authorization(from string, password string, server string) smtp.Auth {
@@ -96,5 +126,8 @@ func authorization(from string, password string, server string) smtp.Auth {
 func generationRandomCode() int {
 	generator := rand.New(rand.NewSource(time.Now().UnixNano()))
 	code := generator.Intn(1000000)
+	if code < 100000 {
+		return code + 100000
+	}
 	return code
 }
