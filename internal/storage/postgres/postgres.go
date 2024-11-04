@@ -7,25 +7,18 @@ import (
 	"go.uber.org/zap"
 )
 
-type Postgres struct {
-	pgx    *pgxpool.Pool
-	ctx    context.Context
-	logger *zap.Logger
-	cfg    *config.Config
-}
-
-func New(pgx *pgxpool.Pool, ctx context.Context, logger *zap.Logger, cfg *config.Config) (*Postgres, error) {
-	postgres := &Postgres{
-		pgx:    pgx,
-		ctx:    ctx,
-		logger: logger,
-		cfg:    cfg,
-	}
+func New(ctx context.Context, logger *zap.Logger, cfg *config.Config) (*pgxpool.Pool, error) {
+	var pgx *pgxpool.Pool
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	config, err := pgxpool.ParseConfig(cfg.Postgres.GetAddressPostgres())
+	addres, err := pgxpool.ParseConfig(cfg.Postgres.GetAddressPostgres())
 	if err != nil {
 		logger.Fatal("failed to parse config for db", zap.Error(err))
 	}
-	pool, err := pgx.N
+	pgx, err = pgxpool.NewWithConfig(ctx, addres)
+	if err != nil {
+		logger.Fatal("failed to connect to db", zap.Error(err))
+	}
+	logger.Info("connected to db")
+	return pgx, nil
 }

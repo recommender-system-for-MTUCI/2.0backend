@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
@@ -25,11 +26,13 @@ func (ctrl *Controller) handleRegistration(ctx echo.Context) error {
 		ctrl.logger.Error("failed to hash password")
 		return ctx.JSON(http.StatusInternalServerError, err)
 	}
-	user := models.DTORegister{
-		ID:       uuid.New(),
-		Login:    req.Login,
-		Password: password,
+	user := &models.DTORegister{
+		ID:           uuid.New(),
+		Login:        req.Login,
+		Password:     password,
+		Confirmation: false,
 	}
+	err = ctrl.storage.User().AddUserInDB(ctrl.ctx, user)
 	err = ctrl.sendMessages(user.Login)
 	if err != nil {
 		ctrl.logger.Error("failed to send registration response")
@@ -44,6 +47,11 @@ func (ctrl *Controller) handleRegistration(ctx echo.Context) error {
 	res := models.ResponseRegister{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+	}
+	_, err = ctrl.pgx.Query(context.Background(), `SELECT 'hi'`)
+	if err != nil {
+		ctrl.logger.Error("failed to execute registration query")
+		return ctx.JSON(http.StatusInternalServerError, err)
 	}
 	return ctx.JSON(http.StatusOK, res)
 

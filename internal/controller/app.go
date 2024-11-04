@@ -3,29 +3,35 @@ package controller
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/config"
+	"github.com/recommender-system-for-MTUCI/2.0backend/internal/storage"
 	token "github.com/recommender-system-for-MTUCI/2.0backend/internal/token"
 	"go.uber.org/zap"
 )
 
 type Controller struct {
-	logger *zap.Logger
-	server *echo.Echo
-	ctx    context.Context
-	cfg    *config.Config
-	token  token.JWT
+	logger  *zap.Logger
+	server  *echo.Echo
+	ctx     context.Context
+	cfg     *config.Config
+	token   token.JWT
+	pgx     *pgxpool.Pool
+	storage *storage.Storage
 }
 
-func New(logger *zap.Logger, ctx context.Context, cfg *config.Config, token token.JWT) *Controller {
+func New(logger *zap.Logger, ctx context.Context, cfg *config.Config, token token.JWT, pgx *pgxpool.Pool, store *storage.Storage) *Controller {
 
 	ctrl := &Controller{
-		logger: logger,
-		server: echo.New(),
-		ctx:    ctx,
-		cfg:    cfg,
-		token:  token,
+		logger:  logger,
+		server:  echo.New(),
+		ctx:     ctx,
+		cfg:     cfg,
+		token:   token,
+		pgx:     pgx,
+		storage: store,
 	}
 	ctrl.RegisterMiddlewares()
 	ctrl.RegisterRoutes()

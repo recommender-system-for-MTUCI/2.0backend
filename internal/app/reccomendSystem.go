@@ -5,6 +5,8 @@ import (
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/config"
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/controller"
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/logger"
+	storage2 "github.com/recommender-system-for-MTUCI/2.0backend/internal/storage"
+	"github.com/recommender-system-for-MTUCI/2.0backend/internal/storage/postgres"
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/token"
 	"go.uber.org/zap"
 	"os"
@@ -29,7 +31,15 @@ func RecommendSystem() {
 		logger.Fatal("failed to initialize token", zap.Error(err))
 	}
 	logger.Info("Success to initialize jwt token")
-	server := controller.New(logger, ctx, cfg, jwt)
+	pgx, err := postgres.New(ctx, logger, cfg)
+	if err != nil {
+		logger.Fatal("failed to initialize postgres", zap.Error(err))
+	}
+	storage, err := storage2.NewStorage(logger, pgx)
+	if err != nil {
+		logger.Fatal("failed to initialize storage", zap.Error(err))
+	}
+	server := controller.New(logger, ctx, cfg, jwt, pgx, storage)
 	logger.Info("Success to initialize server")
 	go func() {
 		logger.Info("Server run")
