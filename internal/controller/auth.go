@@ -65,6 +65,11 @@ func (ctrl *Controller) handleLogin(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
+	id, err := ctrl.storage.User().GetUserIdByEmail(ctrl.ctx, req.Login)
+	if err != nil {
+		ctrl.logger.Error("failed to find user from database")
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
 	return ctx.JSON(http.StatusOK, echo.Map{})
 }
 
@@ -97,7 +102,17 @@ func (ctrl *Controller) handleLogout(ctx echo.Context, req *models.RequestLogin)
 }
 
 func (ctrl *Controller) handleDelete(ctx echo.Context) error {
-	return nil
+	id, err := uuid.Parse("regergge")
+	if err != nil {
+		ctrl.logger.Error("rjfekfkr")
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
+	err = ctrl.storage.User().DeleteUser(ctrl.ctx, id)
+	if err != nil {
+		ctrl.logger.Error("failed to delete user")
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
+	return ctx.JSON(http.StatusNoContent, echo.Map{})
 }
 func (ctrl *Controller) handleChangePassword(ctx echo.Context) error {
 	id, err := uuid.Parse("766c9d59-a163-474d-a146-dc2d69cdfa40")
@@ -129,7 +144,12 @@ func (ctrl *Controller) handleChangePassword(ctx echo.Context) error {
 		ctrl.logger.Error("failed to retrieve password from user")
 		return ctx.JSON(http.StatusInternalServerError, err)
 	}
-	if req.OldPassword != oldPassword {
+	sign, err := decryptPassword(oldPassword)
+	if err != nil {
+		ctrl.logger.Error("failed to decrypt old password")
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
+	if req.OldPassword != sign {
 		ctrl.logger.Error("invalid old password")
 		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": "invalid old password"})
 	}

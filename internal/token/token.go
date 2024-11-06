@@ -20,6 +20,7 @@ type Token struct {
 }
 type tokenClaims struct {
 	jwt.RegisteredClaims
+	isAccess bool
 }
 
 func NewToken(cfg *config.Config) (*Token, error) {
@@ -62,6 +63,7 @@ func (t *Token) CreateToken(userID uuid.UUID, isAccess bool) (string, error) {
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(clock)),
 		},
+		isAccess: isAccess,
 	}
 	jwtToken, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(t.privateKey)
 	if err != nil {
@@ -70,6 +72,6 @@ func (t *Token) CreateToken(userID uuid.UUID, isAccess bool) (string, error) {
 	return jwtToken, nil
 }
 
-/*func (t *Token) ParseToken(token string) (*jwt.Token, error) {
-	return jwt.ParseWithClaims(token, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {})
+/*func (t *Token) ParseToken(tokenString string) (*jwt.Token, error) {
+	return jwt.ParseWithClaims(tokenString, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {})
 }*/

@@ -12,6 +12,8 @@ type UserStorage interface {
 	GetPasswordFromDB(ctx context.Context, id uuid.UUID) (string, error)
 	UpdatePassword(ctx context.Context, id uuid.UUID, newPassword string) error
 	GetStatusFromUser(ctx context.Context, id uuid.UUID) (bool, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GetUserIdByEmail(ctx context.Context, email string) (uuid.UUID, error)
 }
 
 type DB interface {
