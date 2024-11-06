@@ -69,3 +69,7 @@ func (t *Token) CreateToken(userID uuid.UUID, isAccess bool) (string, error) {
 	}
 	return jwtToken, nil
 }
+
+/*func (t *Token) ParseToken(token string) (*jwt.Token, error) {
+	return jwt.ParseWithClaims(token, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {})
+}*/

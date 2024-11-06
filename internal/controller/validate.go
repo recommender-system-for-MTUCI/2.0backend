@@ -22,7 +22,7 @@ func validateLogin(req *models.RequestLogin) error {
 	}
 	return nil
 }
-func validateRegistration(req models.RequestRegister) error {
+func validateRegistration(req *models.RequestRegister) error {
 	if req.Login == "" || req.Password == "" {
 		return errors.New("login or password is empty")
 	}
@@ -31,7 +31,15 @@ func validateRegistration(req models.RequestRegister) error {
 	}
 	return nil
 }
-
+func validatePassword(req *models.RequestChangePassword) error {
+	if req.NewPassword == "" {
+		return errors.New("new password is empty")
+	}
+	if len(req.NewPassword) < 9 {
+		return errors.New("new password is too short")
+	}
+	return nil
+}
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
@@ -89,7 +97,7 @@ func (ctrl *Controller) generateAccessAndRefreshToken(userID uuid.UUID) (accessT
 	return <-errChan
 }*/
 
-func (ctrl *Controller) sendMessages(login string) error {
+func (ctrl *Controller) sendMessages(login string, number int) error {
 
 	password, err := os.ReadFile(ctrl.cfg.SMTP.PasswordPath)
 	if err != nil {
@@ -100,9 +108,8 @@ func (ctrl *Controller) sendMessages(login string) error {
 	server := ctrl.cfg.SMTP.SmtpServer
 	auth := authorization(from, string(password), server)
 	smtpAddress := ctrl.cfg.SMTP.GetSmtpAddress()
-	number := strconv.Itoa(generationRandomCode())
-	code := []byte(number)
-
+	num := strconv.Itoa(number)
+	code := []byte(num)
 	maxRetries := 2
 	for i := 0; i < maxRetries; i++ {
 		err = smtp.SendMail(smtpAddress, auth, from, []string{login}, code)
@@ -123,7 +130,7 @@ func authorization(from string, password string, server string) smtp.Auth {
 	return auth
 }
 
-func generationRandomCode() int {
+func (ctrl *Controller) generationRandomCode() int {
 	generator := rand.New(rand.NewSource(time.Now().UnixNano()))
 	code := generator.Intn(1000000)
 	if code < 100000 {

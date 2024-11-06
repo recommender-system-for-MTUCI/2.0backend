@@ -59,6 +59,7 @@ func (ctrl *Controller) RegisterRoutes() {
 	ctrl.logger.Info("registering routes")
 	api := ctrl.server.Group("/api")
 	api.POST("/hi", ctrl.handleRegistration)
+	api.POST("/hello", ctrl.handleAcceptEmail)
 }
 
 func (ctrl *Controller) RegisterMiddlewares() {
