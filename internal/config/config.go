@@ -14,8 +14,8 @@ func New() (*Config, error) {
 			Port: 8080,
 		},
 		JWT: &JWT{
-			AccessTime:  14555,
-			RefreshTime: 53423,
+			AccessTime:  900,
+			RefreshTime: 3600,
 			PublicKey:   "/home/relationskatie/backendForReccomenSystem/key/public.pem",
 			PrivateKey:  "/home/relationskatie/backendForReccomenSystem/key/private.pem",
 		},

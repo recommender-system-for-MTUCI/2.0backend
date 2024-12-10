@@ -30,7 +30,7 @@ func (ctrl *Controller) handleRegistration(ctx echo.Context) error {
 		Login:        req.Login,
 		Password:     password,
 		Confirmation: false,
-		Code:         ctrl.generationRandomCode(),
+		Code:         generationRandomCode(),
 	}
 	err = ctrl.sendMessages(user.Login, user.Code)
 	if err != nil {
@@ -61,30 +61,47 @@ func (ctrl *Controller) handleLogin(ctx echo.Context) error {
 		log.Error("failed to bind login request", err)
 		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
-	err = validateLogin(req)
-	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
-	}
-	id, err := ctrl.storage.User().GetUserIdByEmail(ctrl.ctx, req.Login)
+	id, password, err := ctrl.storage.User().GetUserIdByEmail(ctrl.ctx, req.Login)
 	if err != nil {
 		ctrl.logger.Error("failed to find user from database")
 		return ctx.JSON(http.StatusInternalServerError, err)
 	}
-	return ctx.JSON(http.StatusOK, echo.Map{})
+	status, err := ctrl.storage.User().GetStatusFromUser(ctrl.ctx, id)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
+	if status == false {
+		ctrl.logger.Error("email dont accept")
+		return ctx.JSON(http.StatusForbidden, echo.Map{"error": "email dont accept"})
+	}
+	err = validateLogin(req)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+	err = encryptPassword(req.Password, password)
+	accessToken, refreshToken, err := ctrl.generateAccessAndRefreshToken(id)
+	if err != nil {
+		ctrl.logger.Error("failed to generate access token")
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
+	res := &models.ResponseLogin{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+	return ctx.JSON(http.StatusOK, res)
 }
 
 func (ctrl *Controller) handleAcceptEmail(ctx echo.Context) error {
-	//need add logic for request id
+	id, err := ctrl.getUserId(ctx.Request())
+	if err != nil {
+		ctrl.logger.Error("failed to find user from database")
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
 	var req *models.RequestAcceptEmail
-	err := ctx.Bind(&req)
+	err = ctx.Bind(&req)
 	if err != nil {
 		log.Error("failed to bind accept email request", err)
 		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
-	}
-	id, err := uuid.Parse("766c9d59-a163-474d-a146-dc2d69cdfa40")
-	if err != nil {
-		ctrl.logger.Error("rjfekfkr")
-		return ctx.JSON(http.StatusInternalServerError, err)
 	}
 	code, err := ctrl.storage.User().GetCodeFromDB(ctrl.ctx, id)
 	if err != nil {
@@ -95,16 +112,17 @@ func (ctrl *Controller) handleAcceptEmail(ctx echo.Context) error {
 		ctrl.logger.Error("failed to accept email code from client")
 		return ctx.JSON(http.StatusInternalServerError, err)
 	}
+	err = ctrl.storage.User().UpdateUserStatus(ctrl.ctx, id)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
 	return ctx.JSON(http.StatusOK, echo.Map{})
-}
-func (ctrl *Controller) handleLogout(ctx echo.Context, req *models.RequestLogin) error {
-	return nil
 }
 
 func (ctrl *Controller) handleDelete(ctx echo.Context) error {
-	id, err := uuid.Parse("regergge")
+	id, err := ctrl.getUserId(ctx.Request())
 	if err != nil {
-		ctrl.logger.Error("rjfekfkr")
+		ctrl.logger.Error("failed to find user")
 		return ctx.JSON(http.StatusInternalServerError, err)
 	}
 	err = ctrl.storage.User().DeleteUser(ctrl.ctx, id)
@@ -115,7 +133,7 @@ func (ctrl *Controller) handleDelete(ctx echo.Context) error {
 	return ctx.JSON(http.StatusNoContent, echo.Map{})
 }
 func (ctrl *Controller) handleChangePassword(ctx echo.Context) error {
-	id, err := uuid.Parse("766c9d59-a163-474d-a146-dc2d69cdfa40")
+	id, err := ctrl.getUserId(ctx.Request())
 	if err != nil {
 		ctrl.logger.Error("failed to parse uuid")
 		return ctx.JSON(http.StatusInternalServerError, err)
@@ -144,15 +162,7 @@ func (ctrl *Controller) handleChangePassword(ctx echo.Context) error {
 		ctrl.logger.Error("failed to retrieve password from user")
 		return ctx.JSON(http.StatusInternalServerError, err)
 	}
-	sign, err := decryptPassword(oldPassword)
-	if err != nil {
-		ctrl.logger.Error("failed to decrypt old password")
-		return ctx.JSON(http.StatusInternalServerError, err)
-	}
-	if req.OldPassword != sign {
-		ctrl.logger.Error("invalid old password")
-		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": "invalid old password"})
-	}
+	err = encryptPassword(req.OldPassword, oldPassword)
 	hashPas, err := hashPassword(req.NewPassword)
 	if err != nil {
 		ctrl.logger.Error("failed to hash password")
@@ -166,5 +176,27 @@ func (ctrl *Controller) handleChangePassword(ctx echo.Context) error {
 		ctrl.logger.Error("failed to update password")
 		return ctx.JSON(http.StatusInternalServerError, err)
 	}
-	return ctx.JSON(http.StatusOK, echo.Map{})
+	return ctx.NoContent(http.StatusNoContent)
+}
+
+func (ctrl *Controller) handleGetMe(ctx echo.Context) error {
+	userID, err := ctrl.getUserId(ctx.Request())
+	if err != nil {
+		ctrl.logger.Error("failed to find user from database")
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
+	status, err := ctrl.storage.User().GetStatusFromUser(ctrl.ctx, userID)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
+	if status == false {
+		ctrl.logger.Error("email dont accept")
+		return ctx.JSON(http.StatusForbidden, echo.Map{"error": "email dont accept"})
+	}
+	login, err := ctrl.storage.User().GetMe(ctrl.ctx, userID)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, err)
+	}
+	return ctx.JSON(http.StatusOK, echo.Map{"login": login})
+
 }

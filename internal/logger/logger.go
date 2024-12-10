@@ -6,38 +6,17 @@ import (
 	"os"
 )
 
-const (
-	Reset  = "\033[0m"
-	Red    = "\033[31m"
-	Green  = "\033[32m"
-	Yellow = "\033[33m"
-	Blue   = "\033[34m"
-	Cyan   = "\033[36m"
-)
-
-func customColorEncoder() zapcore.Encoder {
-	config := zap.NewDevelopmentEncoderConfig()
-	config.EncodeLevel = zapcore.CapitalLevelEncoder
-	config.EncodeLevel = zapcore.LevelEncoder(func(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
-		switch level {
-		case zapcore.DebugLevel:
-			enc.AppendString(Cyan + level.CapitalString() + Reset)
-		case zapcore.InfoLevel:
-			enc.AppendString(Green + level.CapitalString() + Reset)
-		case zapcore.WarnLevel:
-			enc.AppendString(Yellow + level.CapitalString() + Reset)
-		case zapcore.ErrorLevel, zapcore.DPanicLevel, zapcore.PanicLevel, zapcore.FatalLevel:
-			enc.AppendString(Red + level.CapitalString() + Reset)
-		default:
-			enc.AppendString(level.CapitalString())
-		}
-	})
-
-	return zapcore.NewConsoleEncoder(config)
+func jsonEncoder() zapcore.Encoder {
+	config := zap.NewProductionEncoderConfig()
+	config.EncodeTime = zapcore.ISO8601TimeEncoder // Формат времени: ISO 8601
+	return zapcore.NewJSONEncoder(config)
 }
+
 func LoggerConfig() zapcore.Core {
+	encoder := jsonEncoder()
+
 	core := zapcore.NewCore(
-		customColorEncoder(),
+		encoder,
 		zapcore.AddSync(os.Stdout),
 		zapcore.DebugLevel,
 	)

@@ -2,10 +2,12 @@ package token
 
 import (
 	"crypto/rsa"
+	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/labstack/gommon/log"
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/config"
+	"github.com/recommender-system-for-MTUCI/2.0backend/internal/models"
 	"os"
 	"time"
 )
@@ -72,6 +74,27 @@ func (t *Token) CreateToken(userID uuid.UUID, isAccess bool) (string, error) {
 	return jwtToken, nil
 }
 
-/*func (t *Token) ParseToken(tokenString string) (*jwt.Token, error) {
-	return jwt.ParseWithClaims(tokenString, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {})
-}*/
+func (t *Token) ParseToken(tokenString string) (*models.UserData, bool, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return t.publicKey, nil
+	})
+
+	if err != nil {
+		log.Error("Ошибка при разборе токена:", err)
+		return nil, err
+	}
+	claims, ok := token.Claims.(*tokenClaims)
+	if !ok || !token.Valid {
+		log.Error("token is not ok or not valid")
+		return nil, errors.New("недействительный токен")
+	}
+
+	data := &models.UserData{
+		ID:       uuid.MustParse(claims.Issuer),
+		IsAccess: claims.isAccess,
+	}
+	return data, data.IsAccess, nil
+}

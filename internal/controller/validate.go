@@ -2,10 +2,13 @@ package controller
 
 import (
 	"errors"
+	"github.com/labstack/gommon/log"
 	"math/rand"
+	"net/http"
 	"net/smtp"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,6 +49,14 @@ func hashPassword(password string) (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
+}
+
+func encryptPassword(password string, hashPassword string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(hashPassword), []byte(password))
+	if err != nil {
+		return err
+	}
+	return err
 }
 
 func (ctrl *Controller) generateAccessAndRefreshToken(userID uuid.UUID) (accessToken, refreshToken string, err error) {
@@ -130,7 +141,7 @@ func authorization(from string, password string, server string) smtp.Auth {
 	return auth
 }
 
-func (ctrl *Controller) generationRandomCode() int {
+func generationRandomCode() int {
 	generator := rand.New(rand.NewSource(time.Now().UnixNano()))
 	code := generator.Intn(1000000)
 	if code < 100000 {
@@ -139,10 +150,41 @@ func (ctrl *Controller) generationRandomCode() int {
 	return code
 }
 
-func decryptPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
+func tokenInHeader(req *http.Request) (string, error) {
+	authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		return "", errors.New("Authorization header is empty")
 	}
-	return string(bytes), nil
+	token := strings.SplitN(authHeader, "Bearer ", 2) // Используем SplitN для разделения на максимум 2 части
+	if len(token) != 2 {
+		log.Error("Authorization header format is invalid")
+		return "", errors.New("Authorization header is invalid")
+	}
+	if token[1] == "" {
+		log.Error("token is empty")
+		return "", errors.New("Authorization header is empty")
+	}
+	return strings.TrimSpace(token[1]), nil
+}
+
+func (ctrl *Controller) getUserId(req *http.Request) (uuid.UUID, error) {
+	token, err := tokenInHeader(req)
+	if err != nil {
+		ctrl.logger.Error("Failed to get token")
+		ctrl.logger.Info(token)
+		return uuid.Nil, err
+	}
+	data, isAccess, err := ctrl.token.ParseToken(token)
+	if err != nil {
+		ctrl.logger.Error("Failed to parse token")
+		return uuid.Nil, err
+	}
+	if isAccess == false {
+		ctrl.logger.Error("")
+		return uuid.Nil, errors.New("invalid token")
+	}
+	id := data.ID
+	log.Info(id)
+	return id, nil
+
 }

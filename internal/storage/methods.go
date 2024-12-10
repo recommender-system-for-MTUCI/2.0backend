@@ -13,9 +13,18 @@ type UserStorage interface {
 	UpdatePassword(ctx context.Context, id uuid.UUID, newPassword string) error
 	GetStatusFromUser(ctx context.Context, id uuid.UUID) (bool, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
-	GetUserIdByEmail(ctx context.Context, email string) (uuid.UUID, error)
+	GetUserIdByEmail(ctx context.Context, email string) (uuid.UUID, string, error)
+	UpdateUserStatus(ctx context.Context, id uuid.UUID) error
+	GetMe(ctx context.Context, id uuid.UUID) (string, error)
 }
-
+type FilmStorage interface {
+	AddNewComment(ctx context.Context, data *models.DTOComments, userID uuid.UUID) error
+	AddFilmToFavourites(ctx context.Context, data *models.DTOFavorites) error
+	RemoveFilm(ctx context.Context, filmID int, userID uuid.UUID) error
+	GetAllFavourites(ctx context.Context, userID uuid.UUID) ([]models.DTOAllFavorites, error)
+	GetFilmByID(ctx context.Context, filmID int) (models.ResponseFilm, error)
+}
 type DB interface {
 	User() UserStorage
+	Film() FilmStorage
 }

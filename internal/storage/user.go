@@ -84,13 +84,36 @@ func (u *user) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (u *user) GetUserIdByEmail(ctx context.Context, email string) (uuid.UUID, error) {
-	const getUserIdByEmail = `SELECT id FROM users WHERE email = $1`
+func (u *user) GetUserIdByEmail(ctx context.Context, email string) (uuid.UUID, string, error) {
+	const getUserIdByEmail = `SELECT id, password FROM users WHERE login = $1`
 	var id uuid.UUID
-	err := u.pgx.QueryRow(ctx, getUserIdByEmail, email).Scan(&id)
+	var password string
+	err := u.pgx.QueryRow(ctx, getUserIdByEmail, email).Scan(&id, &password)
 	if err != nil {
 		u.logger.Error("error querying id by email", zap.Error(err))
-		return uuid.Nil, err
+		return uuid.Nil, "", err
 	}
-	return id, nil
+	return id, password, nil
+}
+
+func (u *user) UpdateUserStatus(ctx context.Context, id uuid.UUID) error {
+	const updateStatus = `UPDATE users SET confirmation = $1 WHERE id = $2`
+	_, err := u.pgx.Exec(ctx, updateStatus, true, id)
+	if err != nil {
+		u.logger.Error("error updating status", zap.Error(err))
+		return err
+	}
+	return nil
+
+}
+
+func (u *user) GetMe(ctx context.Context, id uuid.UUID) (string, error) {
+	const getMe = `SELECT login FROM users WHERE id = $1`
+	var login string
+	err := u.pgx.QueryRow(ctx, getMe, id).Scan(&login)
+	if err != nil {
+		u.logger.Error("error querying user", zap.Error(err))
+		return "", err
+	}
+	return login, nil
 }

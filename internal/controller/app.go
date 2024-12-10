@@ -58,8 +58,17 @@ func (ctrl *Controller) Shutdown(ctx context.Context) error {
 func (ctrl *Controller) RegisterRoutes() {
 	ctrl.logger.Info("registering routes")
 	api := ctrl.server.Group("/api")
-	api.POST("/hi", ctrl.handleRegistration)
-	api.POST("/hello", ctrl.handleAcceptEmail)
+	api.GET("/recommend_system", ctrl.handleGetMainPage)
+	api.POST("/registration", ctrl.handleRegistration)
+	api.GET("/favourites", ctrl.handleGetFavorites)
+	api.GET("/profile", ctrl.handleGetMe)
+	api.PATCH("/update_password", ctrl.handleChangePassword)
+	api.DELETE("/delete_user", ctrl.handleDelete)
+	api.POST("/login", ctrl.handleLogin)
+	api.GET("/film/:id", ctrl.handleGetFilmByID)
+	api.DELETE("/comment/:id", ctrl.handleDeleteFromFavorites)
+	api.POST("/accept_email", ctrl.handleAcceptEmail)
+	api.PATCH("/comment/:id", ctrl.handleAddComments)
 }
 
 func (ctrl *Controller) RegisterMiddlewares() {
