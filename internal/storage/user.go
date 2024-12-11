@@ -24,7 +24,7 @@ func NewUser(logger *zap.Logger, pgxPool *pgxpool.Pool) (*user, error) {
 }
 
 func (u *user) AddUserInDB(ctx context.Context, user *models.DTORegister) error {
-	const add = `INSERT INTO users(id, login, password, confirmation, code) VALUES ($1, $2, $3, $4, $5)`
+	const add = `INSERT INTO users(id, login, password, is_active, code) VALUES ($1, $2, $3, $4, $5)`
 	_, err := u.pgx.Exec(ctx, add, user.ID, user.Login, user.Password, user.Confirmation, user.Code)
 	if err != nil {
 		u.logger.Error("error adding user", zap.Error(err))
@@ -64,7 +64,7 @@ func (u *user) UpdatePassword(ctx context.Context, id uuid.UUID, newPassword str
 	return nil
 }
 func (u *user) GetStatusFromUser(ctx context.Context, id uuid.UUID) (bool, error) {
-	const getStatus = `SELECT confirmation FROM users WHERE id = $1`
+	const getStatus = `SELECT is_active FROM users WHERE id = $1`
 	var confirmed bool
 	err := u.pgx.QueryRow(ctx, getStatus, id).Scan(&confirmed)
 	if err != nil {
@@ -97,7 +97,7 @@ func (u *user) GetUserIdByEmail(ctx context.Context, email string) (uuid.UUID, s
 }
 
 func (u *user) UpdateUserStatus(ctx context.Context, id uuid.UUID) error {
-	const updateStatus = `UPDATE users SET confirmation = $1 WHERE id = $2`
+	const updateStatus = `UPDATE users SET is_active = $1 WHERE id = $2`
 	_, err := u.pgx.Exec(ctx, updateStatus, true, id)
 	if err != nil {
 		u.logger.Error("error updating status", zap.Error(err))

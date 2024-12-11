@@ -26,7 +26,7 @@ func NewFilm(logger *zap.Logger, pgxPool *pgxpool.Pool) (*film, error) {
 func (f *film) AddNewComment(ctx context.Context, data *models.DTOComments, userID uuid.UUID) error {
 	const getData = `SELECT vote_average, vote_count FROM movie WHERE id = $1`
 	const updateData = `UPDATE movie SET vote_average = $1, vote_count = $2 WHERE id = $3`
-	const addComment = `INSERT INTO comments(id, user_id, film_id, comments) VALUES($1, $2, $3, $4)`
+	const addComment = `INSERT INTO comments(id, user_id, film_id, comment) VALUES($1, $2, $3, $4)`
 	tx, err := f.pgx.Begin(ctx)
 	if err != nil {
 		return err
@@ -86,7 +86,7 @@ func (f *film) RemoveFilm(ctx context.Context, filmID int, userID uuid.UUID) err
 }
 func (f *film) GetAllFavourites(ctx context.Context, userID uuid.UUID) ([]models.DTOAllFavorites, error) {
 	const getAllFavourites = `
-		SELECT f.film_id, m.name
+		SELECT f.film_id, m.title, m.weight_rating
 		FROM favorites f
 		JOIN movie m ON f.film_id = m.id
 		WHERE f.user_id = $1
@@ -100,7 +100,7 @@ func (f *film) GetAllFavourites(ctx context.Context, userID uuid.UUID) ([]models
 
 	for rows.Next() {
 		var temp models.DTOAllFavorites
-		err = rows.Scan(&temp.FilmID, &temp.Name)
+		err = rows.Scan(&temp.FilmID, &temp.Name, &temp.Rating)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +110,6 @@ func (f *film) GetAllFavourites(ctx context.Context, userID uuid.UUID) ([]models
 	if rows.Err() != nil {
 		return nil, rows.Err()
 	}
-
 	return favourites, nil
 }
 

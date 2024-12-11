@@ -69,6 +69,7 @@ func (ctrl *Controller) RegisterRoutes() {
 	api.DELETE("/comment/:id", ctrl.handleDeleteFromFavorites)
 	api.POST("/accept_email", ctrl.handleAcceptEmail)
 	api.PATCH("/comment/:id", ctrl.handleAddComments)
+	api.POST("/film/:id", ctrl.handleAddComments)
 }
 
 func (ctrl *Controller) RegisterMiddlewares() {

@@ -37,3 +37,8 @@ type ResponseFilm struct {
 	WeightRating        float64    `json:"weight_rating"`
 	FilmsComments       []Comments `json:"comments"`
 }
+type ResponseAllFavorites struct {
+	FilmID int     `json:"film_id"`
+	Name   string  `json:"name"`
+	Rating float64 `json:"rating"`
+}

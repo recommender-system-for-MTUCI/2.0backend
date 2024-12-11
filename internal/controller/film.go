@@ -61,10 +61,14 @@ func (ctrl *Controller) handleAddToFavorites(ctx echo.Context) error {
 		ctrl.logger.Error("email dont accept")
 		return ctx.JSON(http.StatusForbidden, echo.Map{"error": "email dont accept"})
 	}
-	filmID, err := strconv.Atoi(ctx.Param("film_id"))
+	strID := ctx.Param("id")
+	//ctrl.logger.Error("strID", zap.Any("strID", strID))
+	if strID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "missing filmID")
+	}
+	filmID, err := strconv.Atoi(strID)
 	if err != nil {
-		ctrl.logger.Error("got err while convert film id to int", zap.Error(err))
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid film ID format")
 	}
 	data := &models.DTOFavorites{
 		ID:     uuid.New(),
@@ -103,6 +107,7 @@ func (ctrl *Controller) handleDeleteFromFavorites(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusCreated)
 }
 
+// need to add rating
 func (ctrl *Controller) handleGetFavorites(ctx echo.Context) error {
 	userID, err := ctrl.getUserId(ctx.Request())
 	if err != nil {
@@ -120,9 +125,14 @@ func (ctrl *Controller) handleGetFavorites(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, err)
 	}
+	if len(data) == 0 {
+		return ctx.NoContent(http.StatusNoContent)
+	}
+
 	return ctx.JSON(http.StatusOK, data)
 }
 
+// need add
 func (ctrl *Controller) handleGetMainPage(ctx echo.Context) error {
 	//here will be work with client ml
 	return ctx.HTML(http.StatusOK, "main.html")

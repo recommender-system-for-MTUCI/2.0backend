@@ -84,12 +84,12 @@ func (t *Token) ParseToken(tokenString string) (*models.UserData, bool, error) {
 
 	if err != nil {
 		log.Error("Ошибка при разборе токена:", err)
-		return nil, err
+		return nil, false, err
 	}
 	claims, ok := token.Claims.(*tokenClaims)
 	if !ok || !token.Valid {
 		log.Error("token is not ok or not valid")
-		return nil, errors.New("недействительный токен")
+		return nil, false, errors.New("недействительный токен")
 	}
 
 	data := &models.UserData{

@@ -29,4 +29,5 @@ type DTOFavorites struct {
 type DTOAllFavorites struct {
 	FilmID int
 	Name   string
+	Rating float64
 }

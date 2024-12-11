@@ -174,15 +174,15 @@ func (ctrl *Controller) getUserId(req *http.Request) (uuid.UUID, error) {
 		ctrl.logger.Info(token)
 		return uuid.Nil, err
 	}
-	data, isAccess, err := ctrl.token.ParseToken(token)
+	data, _, err := ctrl.token.ParseToken(token)
 	if err != nil {
 		ctrl.logger.Error("Failed to parse token")
 		return uuid.Nil, err
 	}
-	if isAccess == false {
-		ctrl.logger.Error("")
-		return uuid.Nil, errors.New("invalid token")
-	}
+	//if isAccess == false {
+	//	ctrl.logger.Error("")
+	//	return uuid.Nil, errors.New("invalid token")
+	//}
 	id := data.ID
 	log.Info(id)
 	return id, nil
