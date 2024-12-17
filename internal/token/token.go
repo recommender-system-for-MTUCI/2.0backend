@@ -22,9 +22,10 @@ type Token struct {
 }
 type tokenClaims struct {
 	jwt.RegisteredClaims
-	isAccess bool
+	IsAccess bool `json:"isAccess"`
 }
 
+// create token config
 func NewToken(cfg *config.Config) (*Token, error) {
 	publicKeyPath, err := os.ReadFile(cfg.JWT.PublicKey)
 	if err != nil {
@@ -51,9 +52,11 @@ func NewToken(cfg *config.Config) (*Token, error) {
 	}
 	return token, nil
 }
+
+// create new token with claims
 func (t *Token) CreateToken(userID uuid.UUID, isAccess bool) (string, error) {
 	var clock time.Duration
-	if isAccess {
+	if isAccess == true {
 		clock = time.Duration(t.accessTime) * time.Minute
 	} else {
 		clock = time.Duration(t.refreshTime) * time.Minute
@@ -65,7 +68,7 @@ func (t *Token) CreateToken(userID uuid.UUID, isAccess bool) (string, error) {
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(clock)),
 		},
-		isAccess: isAccess,
+		IsAccess: isAccess,
 	}
 	jwtToken, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(t.privateKey)
 	if err != nil {
@@ -74,27 +77,31 @@ func (t *Token) CreateToken(userID uuid.UUID, isAccess bool) (string, error) {
 	return jwtToken, nil
 }
 
-func (t *Token) ParseToken(tokenString string) (*models.UserData, bool, error) {
+// parse token claims
+func (t *Token) ParseToken(tokenString string) (*models.UserData, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			log.Error("unexpected signing method")
 			return nil, errors.New("unexpected signing method")
 		}
 		return t.publicKey, nil
 	})
-
 	if err != nil {
-		log.Error("Ошибка при разборе токена:", err)
-		return nil, false, err
+		log.Error("Failed to parse token:", err)
+		return nil, err
 	}
 	claims, ok := token.Claims.(*tokenClaims)
 	if !ok || !token.Valid {
 		log.Error("token is not ok or not valid")
-		return nil, false, errors.New("недействительный токен")
+		return nil, errors.New("token is not ok or not valid")
 	}
-
+	if claims.ExpiresAt.Time.Before(time.Now()) {
+		log.Error("token has expired")
+		return nil, errors.New("token has expired")
+	}
 	data := &models.UserData{
 		ID:       uuid.MustParse(claims.Issuer),
-		IsAccess: claims.isAccess,
+		IsAccess: claims.IsAccess,
 	}
-	return data, data.IsAccess, nil
+	return data, nil
 }

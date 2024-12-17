@@ -7,6 +7,7 @@ type Config struct {
 	Postgres *Postgres
 }
 
+// func to create new instance config
 func New() (*Config, error) {
 	cfg := &Config{
 		Server: &Server{
@@ -14,8 +15,8 @@ func New() (*Config, error) {
 			Port: 8080,
 		},
 		JWT: &JWT{
-			AccessTime:  900,
-			RefreshTime: 3600,
+			AccessTime:  15,
+			RefreshTime: 90,
 			PublicKey:   "/home/relationskatie/backendForReccomenSystem/key/public.pem",
 			PrivateKey:  "/home/relationskatie/backendForReccomenSystem/key/private.pem",
 		},

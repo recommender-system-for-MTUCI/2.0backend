@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/labstack/gommon/log"
 	"os"
 )
@@ -13,11 +14,12 @@ type Postgres struct {
 	Database     string
 }
 
+// func to return postgressql address
 func (p Postgres) GetAddressPostgres() string {
 	file, err := os.ReadFile(p.PasswordPath)
 	if err != nil {
-		log.Panic(err)
+		log.Error(err)
 	}
 	password := string(file)
-	return "postgres" + "://" + p.User + ":" + password + "@" + p.Host + ":" + p.Port + "/" + p.Database + "?sslmode=disable"
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", p.User, password, p.Host, p.Port, p.Database)
 }

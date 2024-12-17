@@ -18,11 +18,17 @@ type UserStorage interface {
 	GetMe(ctx context.Context, id uuid.UUID) (string, error)
 }
 type FilmStorage interface {
-	AddNewComment(ctx context.Context, data *models.DTOComments, userID uuid.UUID) error
+	AddNewComment(ctx context.Context, data *models.DTOComments) error
 	AddFilmToFavourites(ctx context.Context, data *models.DTOFavorites) error
 	RemoveFilm(ctx context.Context, filmID int, userID uuid.UUID) error
 	GetAllFavourites(ctx context.Context, userID uuid.UUID) ([]models.DTOAllFavorites, error)
-	GetFilmByID(ctx context.Context, filmID int) (models.ResponseFilm, error)
+	//GetFilmByID(ctx context.Context, filmID int) (models.ResponseFilm, error)
+	DeleteComment(ctx context.Context, ID uuid.UUID, userID uuid.UUID) error
+	GetTwentyFilm(ctx context.Context) ([]models.DTOFilmMain, error)
+	GetAllGenresWithCount(ctx context.Context) (map[string]int, error)
+	GetFilmByGenre(ctx context.Context, genre string, page int) ([]models.ResponseFilmGenre, error)
+	GetFilmByName(ctx context.Context, name string) ([]models.ResponseFilmName, error)
+	GetCommentsByFilmID(ctx context.Context, filmID int) ([]models.ResponseComments, error)
 }
 type DB interface {
 	User() UserStorage

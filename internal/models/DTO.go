@@ -17,7 +17,9 @@ type DTOPassword struct {
 type DTOComments struct {
 	ID      uuid.UUID
 	FilmID  int
+	UserID  uuid.UUID
 	Comment string
+	Rating  float64
 }
 
 type DTOFavorites struct {
@@ -27,6 +29,12 @@ type DTOFavorites struct {
 }
 
 type DTOAllFavorites struct {
+	FilmID int
+	Name   string
+	Rating float64
+}
+
+type DTOFilmMain struct {
 	FilmID int
 	Name   string
 	Rating float64

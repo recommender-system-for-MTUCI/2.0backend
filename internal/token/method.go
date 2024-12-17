@@ -7,5 +7,5 @@ import (
 
 type JWT interface {
 	CreateToken(userID uuid.UUID, isAccess bool) (string, error)
-	ParseToken(tokenString string) (*models.UserData, bool, error)
+	ParseToken(tokenString string) (*models.UserData, error)
 }

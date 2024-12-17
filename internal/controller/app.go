@@ -22,6 +22,7 @@ type Controller struct {
 	storage *storage.Storage
 }
 
+// func to create new instance controller
 func New(logger *zap.Logger, ctx context.Context, cfg *config.Config, token token.JWT, pgx *pgxpool.Pool, store *storage.Storage) *Controller {
 
 	ctrl := &Controller{
@@ -37,6 +38,8 @@ func New(logger *zap.Logger, ctx context.Context, cfg *config.Config, token toke
 	ctrl.RegisterRoutes()
 	return ctrl
 }
+
+// func to run server
 func (ctrl *Controller) Run() error {
 	err := ctrl.server.Start(ctrl.cfg.Server.GetAddress())
 	if err != nil {
@@ -44,6 +47,8 @@ func (ctrl *Controller) Run() error {
 	}
 	return nil
 }
+
+// func to shutdown server
 func (ctrl *Controller) Shutdown(ctx context.Context) error {
 	ctrl.logger.Info("shutting down server")
 	err := ctrl.server.Shutdown(ctx)
@@ -55,29 +60,37 @@ func (ctrl *Controller) Shutdown(ctx context.Context) error {
 
 }
 
+// func to configure routes with handlers
 func (ctrl *Controller) RegisterRoutes() {
 	ctrl.logger.Info("registering routes")
 	api := ctrl.server.Group("/api")
 	api.GET("/recommend_system", ctrl.handleGetMainPage)
 	api.POST("/registration", ctrl.handleRegistration)
-	api.GET("/favourites", ctrl.handleGetFavorites)
+	api.GET("/favorites", ctrl.handleGetFavourites)
 	api.GET("/profile", ctrl.handleGetMe)
 	api.PATCH("/update_password", ctrl.handleChangePassword)
-	api.DELETE("/delete_user", ctrl.handleDelete)
+	api.DELETE("/delete_user", ctrl.handleDeleteUser)
 	api.POST("/login", ctrl.handleLogin)
-	api.GET("/film/:id", ctrl.handleGetFilmByID)
-	api.DELETE("/comment/:id", ctrl.handleDeleteFromFavorites)
+	//api.GET("/film/:id", ctrl.handleGetFilmByID)
+	api.DELETE("/favorites/:id", ctrl.handleDeleteFromFavorites)
 	api.POST("/accept_email", ctrl.handleAcceptEmail)
-	api.PATCH("/comment/:id", ctrl.handleAddComments)
-	api.POST("/film/:id", ctrl.handleAddComments)
+	api.POST("/comment/:id", ctrl.handleAddComment)
+	api.DELETE("/comment/:id", ctrl.handleDeleteComment)
+	api.POST("/favorites/:id", ctrl.handleAddToFavourites)
+	api.GET("/genres", ctrl.handleGetAllGenres)
+	api.GET("/:genre/:page", ctrl.handleGetFilmsByGenre)
+	api.GET("/refresh", ctrl.handleRefresh)
+	api.GET("/film/:name", ctrl.handleGetFilmsByName)
+	api.GET("/comments/:id", ctrl.handleGetCommentsByFilmID)
 }
 
+// func to configure middlewares
 func (ctrl *Controller) RegisterMiddlewares() {
 	ctrl.logger.Info("registering middlewares")
 	var middlewares = []echo.MiddlewareFunc{
 		middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: []string{"*"},
-			AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+			AllowMethods: []string{echo.GET, echo.POST, echo.PATCH, echo.DELETE},
 		}),
 		middleware.Gzip(),
 		middleware.Recover(),
@@ -97,6 +110,8 @@ func (ctrl *Controller) RegisterMiddlewares() {
 	}
 	ctrl.server.Use(middlewares...)
 }
+
+// func to improve logger
 func (ctrl *Controller) logValuesFunc(_ echo.Context, v middleware.RequestLoggerValues) error {
 	ctrl.logger.Info("Request",
 		zap.String("uri", v.URI),
