@@ -138,93 +138,6 @@ func (f *film) GetAllFavourites(ctx context.Context, userID uuid.UUID) ([]models
 	return favourites, nil
 }
 
-// need change all logic
-/*func (f *film) GetFilmByID(ctx context.Context, filmID int) (models.ResponseFilm, error) {
-	const getFilm = `
-		SELECT
-			m.title,
-			m.genres,
-			m.overview,
-			m.production_companies,
-			m.production_countries,
-			m.release_date,
-			m.run_time,
-			m.vote_average,
-			m.vote_count,
-			m.director,
-			m.weight_rating,
-			a.name AS actor,
-			k.keyword AS keyword,
-			c.com AS comment,
-			u.login AS user_login
-		FROM movie m
-		LEFT JOIN comments c ON m.id = c.film_id
-		LEFT JOIN users u ON c.user_id = u.id
-		LEFT JOIN movie_actor ma ON m.id = ma.movie_id
-		LEFT JOIN actor a ON ma.actor_id = a.id
-		LEFT JOIN movie_keywords mk ON m.id = mk.movie_id
-		LEFT JOIN keywords k ON mk.keyword_id = k.id
-		WHERE m.id = $1
-		ORDER BY m.id, actor, keyword, comment, user_login;
-	`
-
-	var movie models.ResponseFilm
-	var comments []string
-	var userLogins []string
-	var genres []string
-	var actors []string
-	var keyWords []string
-
-	rows, err := f.pgx.Query(ctx, getFilm, filmID)
-	if err != nil {
-		return models.ResponseFilm{}, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var actor, keyword, comment, userLogin, genre string
-
-		err = rows.Scan(
-			&movie.Title,
-			&genres,
-			&movie.Overview,
-			&movie.ProductionCompanies,
-			&movie.ProductionCountries,
-			&movie.ReleaseDate,
-			&movie.RunTime,
-			&movie.VoteAverage,
-			&movie.VoteCount,
-			&movie.Director,
-			&movie.WeightRating,
-			&actor,
-			&keyword,
-			&comment,
-			&userLogin,
-		)
-		if err != nil {
-			return models.ResponseFilm{}, err
-		}
-		genres = append(genres, genre)
-		actors = append(actors, actor)
-		keyWords = append(keyWords, keyword)
-		comments = append(comments, comment)
-		userLogins = append(userLogins, userLogin)
-	}
-
-	for i := range comments {
-		movie.FilmsComments = append(movie.FilmsComments, models.Comments{
-			Com:       comments[i],
-			UserLogin: userLogins[i],
-		})
-	}
-
-	movie.Actor = actors
-	movie.KeyWords = keyWords
-	movie.Genres = genres
-
-	return movie, nil
-}*/
-
 // func to delete comment
 func (f *film) DeleteComment(ctx context.Context, ID uuid.UUID, userID uuid.UUID) error {
 	const delete = `DELETE FROM comments WHERE id = $1 AND user_id = $2;`
@@ -379,4 +292,67 @@ func (f *film) GetCommentsByFilmID(ctx context.Context, filmID int) ([]models.Re
 	}
 	f.logger.Info("successfully retrieved all comments")
 	return comments, nil
+}
+
+func (f *film) GetFilmById(ctx context.Context, filmID int, filmsID []int) (models.ResponseFilmPage, error) {
+	const getFilmByIDQuery = `SELECT  title, genres, overview, production_companies, production_countries, TO_CHAR(release_data, 'YYYY-MM-DD') AS release_data,
+			runtime, vote_average, vote_count, actor, keywords, director, weight_rating
+		FROM movie
+		WHERE id = $1
+	`
+
+	const getOtherFilmsQuery = `
+		SELECT 
+			id,
+			title,
+			vote_average
+		FROM movie
+		WHERE id = ANY($1)
+		LIMIT 10
+	`
+
+	var film models.ResponseFilm
+	var response models.ResponseFilmPage
+
+	row := f.pgx.QueryRow(ctx, getFilmByIDQuery, filmID)
+	err := row.Scan(
+		&film.Title,
+		&film.Genres,
+		&film.Overview,
+		&film.ProductionCompanies,
+		&film.ProductionCountries,
+		&film.ReleaseDate,
+		&film.RunTime,
+		&film.VoteAverage,
+		&film.VoteCount,
+		&film.Actor,
+		&film.KeyWords,
+		&film.Director,
+		&film.WeightRating,
+	)
+	if err != nil {
+		return models.ResponseFilmPage{}, err
+	}
+	rows, err := f.pgx.Query(ctx, getOtherFilmsQuery, filmsID)
+	if err != nil {
+		return models.ResponseFilmPage{}, err
+	}
+	defer rows.Close()
+
+	var otherFilms []models.ResponseFilmName
+	for rows.Next() {
+		var filmName models.ResponseFilmName
+		err = rows.Scan(&filmName.FilmID, &filmName.Name, &filmName.Rating)
+		if err != nil {
+			return models.ResponseFilmPage{}, err
+		}
+		otherFilms = append(otherFilms, filmName)
+	}
+
+	response = models.ResponseFilmPage{
+		Film:  film,
+		Films: otherFilms,
+	}
+
+	return response, nil
 }

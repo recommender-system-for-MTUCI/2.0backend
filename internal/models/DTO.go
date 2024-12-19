@@ -39,3 +39,6 @@ type DTOFilmMain struct {
 	Name   string
 	Rating float64
 }
+type Response struct {
+	Data []int `json:"data"`
+}

@@ -211,32 +211,43 @@ func (ctrl *Controller) handleGetMainPage(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, data)
 }
 
-// need add logic with db and ml
-/*func (ctrl *Controller) handleGetFilmByID(ctx echo.Context) error {
+// handle to return film by id and work with ml
+func (ctrl *Controller) handleGetFilmByID(ctx echo.Context) error {
 	userID, err := ctrl.getUserId(ctx.Request())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+	ctrl.logger.Info("successful get user id")
 	status, err := ctrl.storage.User().GetStatusFromUser(ctrl.ctx, userID)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, err)
+		ctrl.logger.Error("Failed to get user status", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, echo.Map{"error": "Internal server error"})
 	}
-	if status == false {
-		ctrl.logger.Error("email dont accept")
-		return ctx.JSON(http.StatusForbidden, echo.Map{"error": "email dont accept"})
+	if !status {
+		ctrl.logger.Error("Email not accepted")
+		return ctx.JSON(http.StatusForbidden, echo.Map{"error": "email not accepted"})
 	}
-	filmID, err := strconv.Atoi(ctx.Param("film_id"))
+	ctrl.logger.Info("successfully get user status")
+	filmID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctrl.logger.Error("got err while convert film id to int", zap.Error(err))
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		ctrl.logger.Error("Failed to convert film ID to int", zap.Error(err))
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid film ID")
 	}
-	data, err := ctrl.storage.Film().GetFilmByID(ctrl.ctx, filmID)
+	ctrl.logger.Info("successfully convert film id")
+	data, err := ctrl.client.HandleGetFilmID(filmID)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, err)
-
+		ctrl.logger.Error("Failed to get film data", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to get film data"})
 	}
-	return ctx.JSON(http.StatusOK, data)
-}*/
+	ctrl.logger.Info("successfully get films id")
+	res, err := ctrl.storage.Film().GetFilmById(ctrl.ctx, filmID, data)
+	if err != nil {
+		ctrl.logger.Error("Failed to get film data", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to get film data"})
+	}
+	ctrl.logger.Info("Successfully retrieved film data", zap.Any("film_data", data))
+	return ctx.JSON(http.StatusOK, res)
+}
 
 // handle for frontend developer, return all genres for filter
 func (ctrl *Controller) handleGetAllGenres(ctx echo.Context) error {

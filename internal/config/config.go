@@ -5,6 +5,7 @@ type Config struct {
 	JWT      *JWT
 	SMTP     *SMTP
 	Postgres *Postgres
+	Clinet   *Clinet
 }
 
 // func to create new instance config
@@ -32,6 +33,10 @@ func New() (*Config, error) {
 			User:         "relationskatie",
 			PasswordPath: "/home/relationskatie/backendForReccomenSystem/key/passwordPostgres.txt",
 			Database:     "recommend_system",
+		},
+		Clinet: &Clinet{
+			Host: "0.0.0.0",
+			Port: 8000,
 		},
 	}
 	return cfg, nil

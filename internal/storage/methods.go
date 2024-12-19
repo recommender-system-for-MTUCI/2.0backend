@@ -29,6 +29,7 @@ type FilmStorage interface {
 	GetFilmByGenre(ctx context.Context, genre string, page int) ([]models.ResponseFilmGenre, error)
 	GetFilmByName(ctx context.Context, name string) ([]models.ResponseFilmName, error)
 	GetCommentsByFilmID(ctx context.Context, filmID int) ([]models.ResponseComments, error)
+	GetFilmById(ctx context.Context, filmID int, filmsID []int) (models.ResponseFilmPage, error)
 }
 type DB interface {
 	User() UserStorage

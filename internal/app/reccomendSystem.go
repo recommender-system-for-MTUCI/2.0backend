@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	client2 "github.com/recommender-system-for-MTUCI/2.0backend/internal/client"
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/config"
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/controller"
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/logger"
@@ -52,8 +53,15 @@ func RecommendSystem() {
 	}
 	logger.Info("Success to initialize storage")
 
+	//init client
+	client, err := client2.New(logger, cfg)
+	if err != nil {
+		logger.Fatal("failed to initialize client", zap.Error(err))
+	}
+	logger.Info("Success to initialize client")
+
 	//init server
-	server := controller.New(logger, ctx, cfg, jwt, pgx, store)
+	server := controller.New(logger, ctx, cfg, jwt, pgx, store, client)
 	logger.Info("Success to initialize server")
 
 	//run server

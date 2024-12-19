@@ -58,6 +58,14 @@ type ResponseFilmGenre struct {
 	Rating float64 `json:"rating"`
 }
 
+type ResponseID struct {
+	RecommendMovies []int `json:"recommend_movies"`
+}
+
+type ResponseFilmPage struct {
+	Film  ResponseFilm       `json:"film"`
+	Films []ResponseFilmName `json:"films"`
+}
 type ResponseFilmName struct {
 	FilmID int     `json:"film_id"`
 	Name   string  `json:"name"`

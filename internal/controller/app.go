@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/recommender-system-for-MTUCI/2.0backend/internal/client"
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/config"
 	"github.com/recommender-system-for-MTUCI/2.0backend/internal/storage"
 	token "github.com/recommender-system-for-MTUCI/2.0backend/internal/token"
@@ -20,10 +21,11 @@ type Controller struct {
 	token   token.JWT
 	pgx     *pgxpool.Pool
 	storage *storage.Storage
+	client  *client.Client
 }
 
 // func to create new instance controller
-func New(logger *zap.Logger, ctx context.Context, cfg *config.Config, token token.JWT, pgx *pgxpool.Pool, store *storage.Storage) *Controller {
+func New(logger *zap.Logger, ctx context.Context, cfg *config.Config, token token.JWT, pgx *pgxpool.Pool, store *storage.Storage, client *client.Client) *Controller {
 
 	ctrl := &Controller{
 		logger:  logger,
@@ -33,6 +35,7 @@ func New(logger *zap.Logger, ctx context.Context, cfg *config.Config, token toke
 		token:   token,
 		pgx:     pgx,
 		storage: store,
+		client:  client,
 	}
 	ctrl.RegisterMiddlewares()
 	ctrl.RegisterRoutes()
@@ -41,7 +44,7 @@ func New(logger *zap.Logger, ctx context.Context, cfg *config.Config, token toke
 
 // func to run server
 func (ctrl *Controller) Run() error {
-	err := ctrl.server.Start(ctrl.cfg.Server.GetAddress())
+	err := ctrl.server.Start("localhost:8080")
 	if err != nil {
 		ctrl.logger.Error("failed to start server", zap.Error(err))
 	}
@@ -71,7 +74,7 @@ func (ctrl *Controller) RegisterRoutes() {
 	api.PATCH("/update_password", ctrl.handleChangePassword)
 	api.DELETE("/delete_user", ctrl.handleDeleteUser)
 	api.POST("/login", ctrl.handleLogin)
-	//api.GET("/film/:id", ctrl.handleGetFilmByID)
+	api.GET("/fiilm/:id", ctrl.handleGetFilmByID)
 	api.DELETE("/favorites/:id", ctrl.handleDeleteFromFavorites)
 	api.POST("/accept_email", ctrl.handleAcceptEmail)
 	api.POST("/comment/:id", ctrl.handleAddComment)
